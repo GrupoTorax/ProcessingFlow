@@ -1,23 +1,44 @@
 package org.torax.orchestration;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.torax.commons.Exam;
 
 /**
  * Exam result
  */
 public class ExamResult {
+    
+    /** Structures contained in this result */
+    private final Map<StructureType, Structure> structures;
 
-    private final ExamResultSlice[] fatiaExameSegmentados;
-
+    /**
+     * Creates a new exam result
+     * 
+     * @param exam 
+     */
     public ExamResult(Exam exam) {
-        int tamanho = exam.getNumberOfSlices();
-        fatiaExameSegmentados = new ExamResultSlice[tamanho];
-        for (int i = 0; i < tamanho; i++) {
-            fatiaExameSegmentados[i] = new ExamResultSlice();
-        }
+        structures = new HashMap<>();
     }
 
-    public ExamResultSlice getFatiaExameSegmentado(int indice) {
-        return fatiaExameSegmentados[indice];
+    /**
+     * 
+     * @return 
+     */
+    public Map<StructureType, Structure> getStructures() {
+        return structures;
+    }
+
+    /**
+     * Returns the structure by the type
+     * 
+     * @param structureType
+     * @return 
+     */
+    public Structure getStructure(StructureType structureType) {
+        if (!structures.containsKey(structureType)) {
+            structures.put(structureType, new Structure(structureType));
+        }
+        return structures.get(structureType);
     }
 }

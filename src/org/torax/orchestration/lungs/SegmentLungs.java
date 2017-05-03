@@ -4,6 +4,8 @@ import org.torax.orchestration.ExamResult;
 import org.torax.commons.Exam;
 import org.torax.commons.Image;
 import org.torax.commons.ImageHelper;
+import org.torax.orchestration.StructureSlice;
+import org.torax.orchestration.StructureType;
 import org.torax.pdi.BinaryLabelingProcess;
 import org.torax.pdi.GaussianBlurProcess;
 import org.torax.pdi.HistogramProcess;
@@ -92,14 +94,14 @@ public class SegmentLungs {
         for (int x = 0; x < mtzTrabalho.length; x++) {
             for (int y = 0; y < mtzTrabalho[0].length; y++) {
                 if (mtzTrabalho[x][y] == (labelMaior1 + 1)) {
-                    exameSegmentado.getFatiaExameSegmentado(indiceFatia).setMatrizPulmaoEsq(binaryLabelingProcess.getMatrix(labelMaior1));
-                    exameSegmentado.getFatiaExameSegmentado(indiceFatia).setMatrizPulmaoDir(binaryLabelingProcess.getMatrix(labelMaior2));
+                    exameSegmentado.getStructure(StructureType.LEFT_LUNG).addSlice(new StructureSlice(binaryLabelingProcess.getMatrix(labelMaior1)));
+                    exameSegmentado.getStructure(StructureType.RIGHT_LUNG).addSlice(new StructureSlice(binaryLabelingProcess.getMatrix(labelMaior2)));
                     x = mtzTrabalho.length;
                     break;
                 }
                 if (mtzTrabalho[x][y] == (labelMaior2 + 1)) {
-                    exameSegmentado.getFatiaExameSegmentado(indiceFatia).setMatrizPulmaoEsq(binaryLabelingProcess.getMatrix(labelMaior2));
-                    exameSegmentado.getFatiaExameSegmentado(indiceFatia).setMatrizPulmaoDir(binaryLabelingProcess.getMatrix(labelMaior1));
+                    exameSegmentado.getStructure(StructureType.LEFT_LUNG).addSlice(new StructureSlice(binaryLabelingProcess.getMatrix(labelMaior2)));
+                    exameSegmentado.getStructure(StructureType.RIGHT_LUNG).addSlice(new StructureSlice(binaryLabelingProcess.getMatrix(labelMaior1)));
                     x = mtzTrabalho.length;
                     break;
                 }
