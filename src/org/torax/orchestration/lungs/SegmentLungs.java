@@ -94,14 +94,14 @@ public class SegmentLungs {
         for (int x = 0; x < mtzTrabalho.length; x++) {
             for (int y = 0; y < mtzTrabalho[0].length; y++) {
                 if (mtzTrabalho[x][y] == (labelMaior1 + 1)) {
-                    exameSegmentado.getStructure(StructureType.LEFT_LUNG).addSlice(new StructureSlice(binaryLabelingProcess.getMatrix(labelMaior1)));
-                    exameSegmentado.getStructure(StructureType.RIGHT_LUNG).addSlice(new StructureSlice(binaryLabelingProcess.getMatrix(labelMaior2)));
+                    exameSegmentado.getStructure(StructureType.LEFT_LUNG).getSlice(indiceFatia).setBinaryLabel(binaryLabelingProcess.getMatrix(labelMaior1));
+                    exameSegmentado.getStructure(StructureType.RIGHT_LUNG).getSlice(indiceFatia).setBinaryLabel(binaryLabelingProcess.getMatrix(labelMaior2));
                     x = mtzTrabalho.length;
                     break;
                 }
                 if (mtzTrabalho[x][y] == (labelMaior2 + 1)) {
-                    exameSegmentado.getStructure(StructureType.LEFT_LUNG).addSlice(new StructureSlice(binaryLabelingProcess.getMatrix(labelMaior2)));
-                    exameSegmentado.getStructure(StructureType.RIGHT_LUNG).addSlice(new StructureSlice(binaryLabelingProcess.getMatrix(labelMaior1)));
+                    exameSegmentado.getStructure(StructureType.LEFT_LUNG).getSlice(indiceFatia).setBinaryLabel(binaryLabelingProcess.getMatrix(labelMaior2));
+                    exameSegmentado.getStructure(StructureType.RIGHT_LUNG).getSlice(indiceFatia).setBinaryLabel(binaryLabelingProcess.getMatrix(labelMaior1));
                     x = mtzTrabalho.length;
                     break;
                 }

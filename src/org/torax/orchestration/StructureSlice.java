@@ -1,5 +1,7 @@
 package org.torax.orchestration;
 
+import org.torax.commons.ExamSlice;
+
 /**
  * Slice of a structure, such as lungs, heart etc.
  */
@@ -17,6 +19,20 @@ public class StructureSlice {
      */
     public StructureSlice(boolean[][] binaryLabel) {
         setBinaryLabel(binaryLabel);
+    }
+
+    /**
+     * Creates a new empty slice based on the exam
+     * @param exam 
+     */
+    public StructureSlice(ExamSlice exam) {
+        boolean[][] label = new boolean[exam.getSize().width][exam.getSize().height];
+        for (int i = 0; i < exam.getSize().width; i++) {
+            for (int j = 0; j < exam.getSize().height; j++) {
+                label[i][j] = false;
+            }
+        }
+        setBinaryLabel(label);
     }
 
     /**
@@ -52,6 +68,24 @@ public class StructureSlice {
      */
     public int getArea() {
         return area;
+    }
+
+    /**
+     * Returns the width of the slice
+     * 
+     * @return int
+     */
+    public int getWidth() {
+        return binaryLabel.length;
+    }
+
+    /**
+     * Returns the height of the slice
+     * 
+     * @return int
+     */
+    public int getHeight() {
+        return binaryLabel[0].length;
     }
 
 }

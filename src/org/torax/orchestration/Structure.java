@@ -2,6 +2,7 @@ package org.torax.orchestration;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.torax.commons.Exam;
 
 /**
  * Structure, such as lungs, heart, etc
@@ -17,10 +18,14 @@ public class Structure {
      * Creates a new structure
      *
      * @param type
+     * @param exam
      */
-    public Structure(StructureType type) {
+    public Structure(StructureType type, Exam exam) {
         this.type = type;
         this.slices = new ArrayList<>();
+        for (int i = 0; i < exam.getNumberOfSlices(); i++) {
+            this.slices.add(new StructureSlice(exam.getExamSlice(i)));
+        }
     }
 
     /**
