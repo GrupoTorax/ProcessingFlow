@@ -51,6 +51,24 @@ public class StructureSlice {
             }
         }
     }
+    
+    /**
+     * Sets the value of a point
+     * 
+     * @param x
+     * @param y
+     * @param value
+     */
+    public final void setPoint(int x, int y, boolean value) {
+        if (binaryLabel[x][y] != value) {
+            if (value) {
+                area++;
+            } else {
+                area--;
+            }
+            binaryLabel[x][y] = value;
+        }
+    }
 
     /**
      * Returns the binary label
