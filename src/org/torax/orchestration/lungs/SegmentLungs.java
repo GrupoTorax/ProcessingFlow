@@ -4,7 +4,6 @@ import org.torax.orchestration.ExamResult;
 import org.torax.commons.Exam;
 import org.torax.commons.Image;
 import org.torax.commons.ImageHelper;
-import org.torax.orchestration.StructureSlice;
 import org.torax.orchestration.StructureType;
 import org.torax.pdi.BinaryLabelingProcess;
 import org.torax.pdi.GaussianBlurProcess;
@@ -23,7 +22,6 @@ public class SegmentLungs {
     private final Exam exam;
     private final ExamResult exameSegmentado;
     private int[][] mtzTrabalho;
-    private int labelMaior1, labelMaior2, tamanho, maior1, maior2;
 
     public SegmentLungs(Exam exam, ExamResult exameSegmentado) {
         this.exam = exam;
@@ -73,35 +71,42 @@ public class SegmentLungs {
         image = ImageHelper.create(mtzTrabalho, new org.torax.commons.Range<>(-4000, 4000));
         BinaryLabelingProcess binaryLabelingProcess = new BinaryLabelingProcess(image);
         binaryLabelingProcess.process();
+        BinaryLabelingProcess.ObjectList objects = binaryLabelingProcess.getExtractedObjects();
+        
         // Busca os dois maiores objetos da imagem
-        buscaDoisMaiores(binaryLabelingProcess);
+        objects.sortBySizeLargestFirst();
+        BinaryLabelingProcess.ExtractedObject maiorO1 = objects.get(0);
+        BinaryLabelingProcess.ExtractedObject maiorO2 = objects.get(1);
+        
         //refaz a rotulação, agora com os pulmões separados
         image = ImageHelper.create(mtzTrabalho, new org.torax.commons.Range<>(-4000, 4000));
         // Verifica se os pulmões estão conectados, sendo reconhecidos como somente 1 objeto
-        if (verificaConectados(binaryLabelingProcess.getMatrix(labelMaior1), maior1)) {
-            System.out.println("Conectados! Fatia: " + (indiceFatia + 1));
+        if (verificaConectados(maiorO1.getMatrix(), maiorO1.getSize())) {
             //separa os pulmões (altera mtzTrabalho, separando os pulmões
-            SplitConnectedLungs splitConnectedLungs = new SplitConnectedLungs(image, binaryLabelingProcess.getMatrix(labelMaior1));
+            SplitConnectedLungs splitConnectedLungs = new SplitConnectedLungs(image, maiorO1.getMatrix());
             splitConnectedLungs.process();
             binaryLabelingProcess = new BinaryLabelingProcess(image);
             binaryLabelingProcess.process();
             //busca os dois maiores objetos da imagem
-            buscaDoisMaiores(binaryLabelingProcess);
+            objects = binaryLabelingProcess.getExtractedObjects();
+            objects.sortBySizeLargestFirst();
+            maiorO1 = objects.get(0);
+            maiorO2 = objects.get(1);
         }
         // Verifica qual dos dois objetos começa mais a esquerda
         // ATENÇÃO, a matriz retornada abaixo não está com o "offset" de objetos, por isso é necessário acrescentar 1 na comparação, mas não no get da matriz booleana!
         mtzTrabalho = ImageHelper.getData(binaryLabelingProcess.getOutput().getImage());
         for (int x = 0; x < mtzTrabalho.length; x++) {
             for (int y = 0; y < mtzTrabalho[0].length; y++) {
-                if (mtzTrabalho[x][y] == (labelMaior1 + 1)) {
-                    exameSegmentado.getStructure(StructureType.LEFT_LUNG).getSlice(indiceFatia).setBinaryLabel(binaryLabelingProcess.getMatrix(labelMaior1));
-                    exameSegmentado.getStructure(StructureType.RIGHT_LUNG).getSlice(indiceFatia).setBinaryLabel(binaryLabelingProcess.getMatrix(labelMaior2));
+                if (mtzTrabalho[x][y] == (maiorO1.getLabel() + 1)) {
+                    exameSegmentado.getStructure(StructureType.LEFT_LUNG).getSlice(indiceFatia).setBinaryLabel(maiorO1.getMatrix());
+                    exameSegmentado.getStructure(StructureType.RIGHT_LUNG).getSlice(indiceFatia).setBinaryLabel(maiorO2.getMatrix());
                     x = mtzTrabalho.length;
                     break;
                 }
-                if (mtzTrabalho[x][y] == (labelMaior2 + 1)) {
-                    exameSegmentado.getStructure(StructureType.LEFT_LUNG).getSlice(indiceFatia).setBinaryLabel(binaryLabelingProcess.getMatrix(labelMaior2));
-                    exameSegmentado.getStructure(StructureType.RIGHT_LUNG).getSlice(indiceFatia).setBinaryLabel(binaryLabelingProcess.getMatrix(labelMaior1));
+                if (mtzTrabalho[x][y] == (maiorO2.getLabel() + 1)) {
+                    exameSegmentado.getStructure(StructureType.LEFT_LUNG).getSlice(indiceFatia).setBinaryLabel(maiorO2.getMatrix());
+                    exameSegmentado.getStructure(StructureType.RIGHT_LUNG).getSlice(indiceFatia).setBinaryLabel(maiorO1.getMatrix());
                     x = mtzTrabalho.length;
                     break;
                 }
@@ -134,25 +139,6 @@ public class SegmentLungs {
         }
         // Retorna verdadeiro se cada um dos lados tem pelo menos 30% do objeto, indicando que os pulmões estão conectados
         return (tamEsquerda >= (maior * 0.3)) & (tamDireita >= (maior * 0.3));
-    }
-
-    private void buscaDoisMaiores(BinaryLabelingProcess binaryLabelingProcess) {
-        maior1 = 0;
-        maior2 = 0;
-        labelMaior1 = 0;
-        labelMaior2 = 0;
-        for (int i = 1; i <= binaryLabelingProcess.getOutput().getSize(); i++) {
-            tamanho = binaryLabelingProcess.getSize(i);
-            if (tamanho > maior1) {
-                maior2 = maior1;
-                labelMaior2 = labelMaior1;
-                maior1 = tamanho;
-                labelMaior1 = i;
-            } else if (tamanho > maior2) {
-                maior2 = tamanho;
-                labelMaior2 = i;
-            }
-        }
     }
 
     public static int[][] copyArray(final int[][] array) {
