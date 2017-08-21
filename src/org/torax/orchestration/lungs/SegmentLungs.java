@@ -6,6 +6,7 @@ import org.torax.commons.Image;
 import org.torax.commons.ImageHelper;
 import org.torax.orchestration.StructureType;
 import org.torax.pdi.BinaryLabelingProcess;
+import org.torax.pdi.BinaryLabelingProcess.ObjectList;
 import org.torax.pdi.GaussianBlurProcess;
 import org.torax.pdi.HistogramProcess;
 import org.torax.pdi.ShadowCastingProcess;
@@ -14,140 +15,105 @@ import org.torax.pdi.ThresholdLimitProcess;
 import org.torax.pdi.ThresholdProcess;
 
 /**
- *
- * @author Nícolas Pohren
+ * Identifies and segments the lungs in the exam
  */
 public class SegmentLungs {
 
+    /** Exam */
     private final Exam exam;
-    private final ExamResult exameSegmentado;
-    private int[][] mtzTrabalho;
+    /** Exam result */
+    private final ExamResult result;
 
+    /**
+     * Creates the flow for the lung segmentation
+     * 
+     * @param exam
+     * @param exameSegmentado 
+     */
     public SegmentLungs(Exam exam, ExamResult exameSegmentado) {
         this.exam = exam;
-        this.exameSegmentado = exameSegmentado;
+        this.result = exameSegmentado;
     }
 
+    /**
+     * Segments the lungs
+     */
     public void segmenta() {
         for (int indiceFatia = 0; indiceFatia < exam.getNumberOfSlices(); indiceFatia++) {
-            segmentaFatia(indiceFatia);
+            segmentSlice(indiceFatia);
         }
     }
 
-    private void segmentaFatia(int indiceFatia) {
-        // Deve copiar o conteudo da matriz pois NÃO deve alterar o matriz de coeficientes original
-        mtzTrabalho = copyArray(exam.getExamSlice(indiceFatia).getCoefficientMatrix());
+    /**
+     * Segments a specified slice
+     * 
+     * @param sliceIndex 
+     */
+    private void segmentSlice(int sliceIndex) {
         // Converte qualquer valor fora da faixa de valores válidos para um valor conhecido de background
-        Image image = ImageHelper.create(mtzTrabalho, new org.torax.commons.Range<>(-4000, 4000));
+        Image image = ImageHelper.create(exam.getExamSlice(sliceIndex).getCoefficientMatrix(), new org.torax.commons.Range<>(-4000, 4000));
         ThresholdLimitProcess limit = new ThresholdLimitProcess(image, Integer.MIN_VALUE, 4000, -1000, -1000);
         limit.process();
         image = limit.getOutput();
         // Se a espessura da fatia for menor que 5mm
-        if (exam.getExamSlice(indiceFatia).getSliceThickness() <= 5) {
-            image = aplicaGauss(image);
+        if (exam.getExamSlice(sliceIndex).getSliceThickness() <= 5) {
+            image = applyGauss(image);
         }
         // Cria uma "sombra" do objeto para todos os lados
         ShadowCastingProcess shadowProcess = new ShadowCastingProcess(image, -200, ShadowCastingProcess.Orientation.LEFT, ShadowCastingProcess.Orientation.RIGHT, ShadowCastingProcess.Orientation.TOP, ShadowCastingProcess.Orientation.BOTTOM);
         shadowProcess.process();
-        mtzTrabalho = ImageHelper.getData(shadowProcess.getOutput());
         // Histograma
-        HistogramProcess histogramProcess = new HistogramProcess(ImageHelper.create(mtzTrabalho, new org.torax.commons.Range<>(-1000, -200)));
+        HistogramProcess histogramProcess = new HistogramProcess(ImageHelper.create(shadowProcess.getOutput(), new org.torax.commons.Range<>(-1000, -200)));
         histogramProcess.process();
         int maxOccurrence = histogramProcess.getOutput().getValueWithMaxOccurences(new org.torax.commons.Range<>(-1000, -201));
         int limiar = histogramProcess.getOutput().getValueWithLeastOccurences(new org.torax.commons.Range<>(maxOccurrence, -200));
         // Converte a matriz para tons de cinza
-        image = ImageHelper.create(mtzTrabalho, new org.torax.commons.Range<>(255, 0));
+        image = ImageHelper.create(shadowProcess.getOutput(), new org.torax.commons.Range<>(255, 0));
         ThresholdProcess process = new ThresholdProcess(image, limiar);
         process.process();
         // Executa o corte das bordas, para remover a mesa do tomógrafo
         ThresholdEdgeTrimProcess edgeProcess = new ThresholdEdgeTrimProcess(image, 0, ThresholdEdgeTrimProcess.Orientation.BOTTOM);
         edgeProcess.process();
-        mtzTrabalho = ImageHelper.getData(process.getOutput());
         // Retira a mesa do tomógrafo, se existente
-        image = ImageHelper.create(mtzTrabalho, new org.torax.commons.Range<>(0, 1));
+        image = ImageHelper.create(process.getOutput(), new org.torax.commons.Range<>(0, 1));
         process = new ThresholdProcess(image, 100);
         process.process();
-        mtzTrabalho = ImageHelper.getData(process.getOutput());
-        image = ImageHelper.create(mtzTrabalho, new org.torax.commons.Range<>(-4000, 4000));
+        image = ImageHelper.create(process.getOutput(), new org.torax.commons.Range<>(-4000, 4000));
         BinaryLabelingProcess binaryLabelingProcess = new BinaryLabelingProcess(image);
         binaryLabelingProcess.process();
         BinaryLabelingProcess.ObjectList objects = binaryLabelingProcess.getExtractedObjects();
-        
         // Busca os dois maiores objetos da imagem
-        objects.sortBySizeLargestFirst();
-        BinaryLabelingProcess.ExtractedObject maiorO1 = objects.get(0);
-        BinaryLabelingProcess.ExtractedObject maiorO2 = objects.get(1);
-        
-        //refaz a rotulação, agora com os pulmões separados
-        image = ImageHelper.create(mtzTrabalho, new org.torax.commons.Range<>(-4000, 4000));
+        ObjectList twoLargest = objects.sortBySizeLargestFirst().subList(2);
+        BinaryLabelingProcess.ExtractedObject maiorO1 = twoLargest.get(0);
         // Verifica se os pulmões estão conectados, sendo reconhecidos como somente 1 objeto
-        if (verificaConectados(maiorO1.getMatrix(), maiorO1.getSize())) {
+        CheckConnectedLungs checkConnected = new CheckConnectedLungs(maiorO1);
+        checkConnected.process();
+        if (checkConnected.isConnected()) {
             //separa os pulmões (altera mtzTrabalho, separando os pulmões
             SplitConnectedLungs splitConnectedLungs = new SplitConnectedLungs(image, maiorO1.getMatrix());
             splitConnectedLungs.process();
             binaryLabelingProcess = new BinaryLabelingProcess(image);
             binaryLabelingProcess.process();
-            //busca os dois maiores objetos da imagem
+            // Busca os dois maiores objetos da imagem
             objects = binaryLabelingProcess.getExtractedObjects();
-            objects.sortBySizeLargestFirst();
-            maiorO1 = objects.get(0);
-            maiorO2 = objects.get(1);
+            twoLargest = objects.sortBySizeLargestFirst().subList(2);
         }
-        // Verifica qual dos dois objetos começa mais a esquerda
-        // ATENÇÃO, a matriz retornada abaixo não está com o "offset" de objetos, por isso é necessário acrescentar 1 na comparação, mas não no get da matriz booleana!
-        mtzTrabalho = ImageHelper.getData(binaryLabelingProcess.getOutput().getImage());
-        for (int x = 0; x < mtzTrabalho.length; x++) {
-            for (int y = 0; y < mtzTrabalho[0].length; y++) {
-                if (mtzTrabalho[x][y] == (maiorO1.getLabel() + 1)) {
-                    exameSegmentado.getStructure(StructureType.LEFT_LUNG).getSlice(indiceFatia).setBinaryLabel(maiorO1.getMatrix());
-                    exameSegmentado.getStructure(StructureType.RIGHT_LUNG).getSlice(indiceFatia).setBinaryLabel(maiorO2.getMatrix());
-                    x = mtzTrabalho.length;
-                    break;
-                }
-                if (mtzTrabalho[x][y] == (maiorO2.getLabel() + 1)) {
-                    exameSegmentado.getStructure(StructureType.LEFT_LUNG).getSlice(indiceFatia).setBinaryLabel(maiorO2.getMatrix());
-                    exameSegmentado.getStructure(StructureType.RIGHT_LUNG).getSlice(indiceFatia).setBinaryLabel(maiorO1.getMatrix());
-                    x = mtzTrabalho.length;
-                    break;
-                }
-            }
-        }
+        // Ordena pela posição horizontal, e separa o pulmão esquerdo do direito
+        twoLargest.sort((o1, o2) -> o1.getBounds().x - o2.getBounds().x);
+        result.getStructure(StructureType.LEFT_LUNG).getSlice(sliceIndex).setBinaryLabel(twoLargest.get(0).getMatrix());
+        result.getStructure(StructureType.RIGHT_LUNG).getSlice(sliceIndex).setBinaryLabel(twoLargest.get(1).getMatrix());
     }
 
-    private Image aplicaGauss(Image image) {
-        double sigma = 1.76;
-        int tam = 5;
-        GaussianBlurProcess process = new GaussianBlurProcess(image, sigma, tam);
+    /**
+     * Applies the Gauss process
+     * 
+     * @param image
+     * @return Image
+     */
+    private Image applyGauss(Image image) {
+        GaussianBlurProcess process = new GaussianBlurProcess(image, /* Sigma = */ 1.76, /* Mask size = */ 5);
         process.process();
         return process.getOutput();
-    }
-
-    private boolean verificaConectados(boolean[][] matrizBinLabel, int maior) {
-        int tamEsquerda = 0;
-        int tamDireita = 0;
-        for (int y = 0; y < mtzTrabalho[0].length; y++) {
-            for (int x = 0; x < (mtzTrabalho.length / 2); x++) {
-                if (matrizBinLabel[x][y]) {
-                    tamEsquerda++;
-                }
-            }
-            for (int x = (mtzTrabalho.length / 2); x < mtzTrabalho.length; x++) {
-                if (matrizBinLabel[x][y]) {
-                    tamDireita++;
-                }
-            }
-        }
-        // Retorna verdadeiro se cada um dos lados tem pelo menos 30% do objeto, indicando que os pulmões estão conectados
-        return (tamEsquerda >= (maior * 0.3)) & (tamDireita >= (maior * 0.3));
-    }
-
-    public static int[][] copyArray(final int[][] array) {
-        final int[][] copy = new int[array.length][];
-        for (int i = 0; i < array.length; i++) {
-            copy[i] = new int[array[i].length];
-            System.arraycopy(array[i], 0, copy[i], 0, array[i].length);
-        }
-        return copy;
     }
 
 }
