@@ -11,6 +11,7 @@ public enum StructureType {
     LEFT_LUNG("Left lung", new Color(0xFFFF00)),
     RIGHT_LUNG("Right lung", new Color(0x00FF00)),
     HEART("Heart", new Color(0xFF0000)),
+    AORTA("Aorta", new Color(0xFF00FF)),
     ;
     
     /** Name of the structure */

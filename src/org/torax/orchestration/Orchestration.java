@@ -1,6 +1,8 @@
 package org.torax.orchestration;
 
 import org.torax.commons.Exam;
+import org.torax.orchestration.lungs.SegmentAorta;
+import org.torax.orchestration.lungs.SegmentHeart;
 import org.torax.orchestration.lungs.SegmentLungs;
 
 /**
@@ -16,9 +18,13 @@ public class Orchestration {
     }
 
     public ExamResult segmenta() {
-        ExamResult exameSegmentado = new ExamResult(exam);
-        SegmentLungs segPul = new SegmentLungs(exam, exameSegmentado);
-        segPul.segmenta();
-        return exameSegmentado;
+        ExamResult result = new ExamResult(exam);
+        SegmentLungs lungSegmentation = new SegmentLungs(exam, result);
+        lungSegmentation.segmenta();
+        SegmentAorta aortaSegmentation = new SegmentAorta(exam, result);
+        aortaSegmentation.process();
+        SegmentHeart heartSegmentation = new SegmentHeart(exam, result);
+        heartSegmentation.process();
+        return result;
     }
 }
