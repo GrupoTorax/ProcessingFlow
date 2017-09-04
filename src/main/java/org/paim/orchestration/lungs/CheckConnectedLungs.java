@@ -1,5 +1,6 @@
 package org.paim.orchestration.lungs;
 
+import org.paim.commons.BinaryImage;
 import org.paim.pdi.BinaryLabelingProcess;
 import org.paim.pdi.Process;
 
@@ -26,17 +27,15 @@ public class CheckConnectedLungs implements Process {
     public void process() {
         int sizeLeft = 0;
         int sizeRight = 0;
-        boolean [][] labeledMatrix = object.getMatrix();
-        int width = labeledMatrix.length;
-        int height = labeledMatrix[0].length;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < (width / 2); x++) {
-                if (labeledMatrix[x][y]) {
+        BinaryImage labeledMatrix = object.getMatrix();
+        for (int y = 0; y < labeledMatrix.getWidth(); y++) {
+            for (int x = 0; x < (labeledMatrix.getHeight() / 2); x++) {
+                if (labeledMatrix.get(x, y)) {
                     sizeLeft++;
                 }
             }
-            for (int x = (width / 2); x < width; x++) {
-                if (labeledMatrix[x][y]) {
+            for (int x = (labeledMatrix.getWidth() / 2); x < labeledMatrix.getWidth(); x++) {
+                if (labeledMatrix.get(x, y)) {
                     sizeRight++;
                 }
             }

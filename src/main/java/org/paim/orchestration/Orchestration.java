@@ -1,8 +1,8 @@
 package org.paim.orchestration;
 
 import org.paim.commons.Exam;
-import org.paim.orchestration.lungs.SegmentAorta;
-import org.paim.orchestration.lungs.SegmentHeart;
+import org.paim.orchestration.aorta.SegmentAorta;
+import org.paim.orchestration.heart.SegmentHeart;
 import org.paim.orchestration.lungs.SegmentLungs;
 
 /**

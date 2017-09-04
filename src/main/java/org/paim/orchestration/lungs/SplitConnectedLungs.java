@@ -1,5 +1,6 @@
 package org.paim.orchestration.lungs;
 
+import org.paim.commons.BinaryImage;
 import org.paim.commons.Image;
 import org.paim.pdi.Process;
 
@@ -11,7 +12,7 @@ public class SplitConnectedLungs implements Process {
     /** Original image */
     private final Image image;
     /** Labeled matrix */
-    private final boolean[][] labeledMatrix;
+    private final BinaryImage labeledMatrix;
 
     /**
      * Crates a new process for splitting connected lungs
@@ -19,7 +20,7 @@ public class SplitConnectedLungs implements Process {
      * @param image
      * @param labeledMatrix 
      */
-    public SplitConnectedLungs(Image image, boolean[][] labeledMatrix) {
+    public SplitConnectedLungs(Image image, BinaryImage labeledMatrix) {
         this.labeledMatrix = labeledMatrix;
         this.image = image;
     }
@@ -36,11 +37,11 @@ public class SplitConnectedLungs implements Process {
             // Varre até a metade das linhas
             for (int y = 0; y < metadeMatriz; y++) {
                 // Esquerda
-                if (labeledMatrix[metadeMatriz - x][y]) {
+                if (labeledMatrix.get(metadeMatriz - x, y)) {
                     tamProcEsq++;
                 }
                 // Direita
-                if (labeledMatrix[metadeMatriz + x][y]) {
+                if (labeledMatrix.get(metadeMatriz + x, y)) {
                     tamProcDir++;
                 }
             }

@@ -1,6 +1,8 @@
 package org.paim.orchestration;
 
+import org.paim.commons.BinaryImage;
 import org.paim.commons.ExamSlice;
+import org.paim.commons.ImageFactory;
 
 /**
  * Slice of a structure, such as lungs, heart etc.
@@ -8,7 +10,7 @@ import org.paim.commons.ExamSlice;
 public class StructureSlice {
 
     /** Binary label that represents the structure slice */
-    private boolean[][] binaryLabel;
+    private BinaryImage binaryLabel;
     /** Area */
     private int area;
 
@@ -17,7 +19,7 @@ public class StructureSlice {
      *
      * @param binaryLabel
      */
-    public StructureSlice(boolean[][] binaryLabel) {
+    public StructureSlice(BinaryImage binaryLabel) {
         setBinaryLabel(binaryLabel);
     }
 
@@ -26,13 +28,7 @@ public class StructureSlice {
      * @param exam 
      */
     public StructureSlice(ExamSlice exam) {
-        boolean[][] label = new boolean[exam.getSize().width][exam.getSize().height];
-        for (int i = 0; i < exam.getSize().width; i++) {
-            for (int j = 0; j < exam.getSize().height; j++) {
-                label[i][j] = false;
-            }
-        }
-        setBinaryLabel(label);
+        setBinaryLabel(new BinaryImage(ImageFactory.buildEmptyImage()));
     }
 
     /**
@@ -40,12 +36,12 @@ public class StructureSlice {
      * 
      * @param binaryLabel 
      */
-    public final void setBinaryLabel(boolean[][] binaryLabel) {
+    public final void setBinaryLabel(BinaryImage binaryLabel) {
         this.binaryLabel = binaryLabel;
         area = 0;
-        for (int i = 0; i < binaryLabel.length; i++) {
-            for (int j = 0; j < binaryLabel[i].length; j++) {
-                if (binaryLabel[i][j]) {
+        for (int x = 0; x < binaryLabel.getWidth(); x++) {
+            for (int y = 0; y < binaryLabel.getHeight(); y++) {
+                if (binaryLabel.get(x, y)) {
                     area++;
                 }
             }
@@ -60,22 +56,22 @@ public class StructureSlice {
      * @param value
      */
     public final void setPoint(int x, int y, boolean value) {
-        if (binaryLabel[x][y] != value) {
+        if (binaryLabel.get(x, y) != value) {
             if (value) {
                 area++;
             } else {
                 area--;
             }
-            binaryLabel[x][y] = value;
+            binaryLabel.set(x, y, value);
         }
     }
 
     /**
      * Returns the binary label
      * 
-     * @return boolean[][]
+     * @return BinaryImage
      */
-    public boolean[][] getBinaryLabel() {
+    public BinaryImage getBinaryLabel() {
         return binaryLabel;
     }
 
@@ -94,7 +90,7 @@ public class StructureSlice {
      * @return int
      */
     public int getWidth() {
-        return binaryLabel.length;
+        return binaryLabel.getWidth();
     }
 
     /**
@@ -103,7 +99,7 @@ public class StructureSlice {
      * @return int
      */
     public int getHeight() {
-        return binaryLabel[0].length;
+        return binaryLabel.getHeight();
     }
 
 }
