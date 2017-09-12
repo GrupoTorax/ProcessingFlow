@@ -1,12 +1,21 @@
 package org.paim.orchestration.heart;
 
+import java.awt.Polygon;
+import java.awt.Rectangle;
+import java.util.ArrayList;
+import java.util.List;
+import static jdk.nashorn.internal.objects.NativeArray.slice;
 import org.paim.commons.BinaryImage;
+import org.paim.commons.Bounds;
 import org.paim.commons.Exam;
 import org.paim.commons.Image;
 import org.paim.commons.ImageFactory;
 import org.paim.commons.ImageHelper;
+import org.paim.commons.Point;
 import org.paim.orchestration.ExamResult;
 import org.paim.orchestration.StructureType;
+import org.paim.pdi.BinaryLabelingProcess;
+import org.paim.pdi.ThresholdLimitProcess;
 
 /**
  * Identifies and segments the heart in the exam
@@ -116,9 +125,84 @@ public class SegmentHeart {
                 binaryMatrix.set(x, y, false);
             }
         }
+        
+        BinaryLabelingProcess binaryLabeling = new BinaryLabelingProcess(binaryMatrix);
+        binaryLabeling.process();
+        BinaryLabelingProcess.ObjectList objects = binaryLabeling.getExtractedObjects().sortBySizeLargestFirst();
+        if (objects.isEmpty()) {
+            return;
+        }
+        binaryMatrix = objects.get(0).getMatrix();
+        
+        // Apply a threshold painting the range 100-2000 HU in white, all the rest in black
+        ThresholdLimitProcess limit = new ThresholdLimitProcess(image, -190, 30, -4000, -4000, 4000);
+        limit.process();
+        Image limitImage = limit.getOutput();
+        
+        binaryLabeling = new BinaryLabelingProcess(limitImage);
+        binaryLabeling.process();
+        objects = binaryLabeling.getExtractedObjects().sortBySizeLargestFirst();
+        if (objects.isEmpty()) {
+            return;
+        }
+        BinaryImage thresholdedMatrix = objects.get(0).getMatrix();
+        binaryMatrix = thresholdedMatrix.intersection(binaryMatrix);
+
+        // Implementação do algoritmo de Figueiredo:
+        Bounds bounds = binaryMatrix.getBounds();
+        Point center = bounds.center();
+        
+        List<Integer> xPoints = new ArrayList<>();
+        List<Integer> yPoints = new ArrayList<>();
+//        System.out.println(sliceIndex);
+        double r = Math.max(bounds.width, bounds.height) * 0.8;
+        for (int i = 0; i < 360; i += 1) {
+            int xHigherFrequency = -1;
+            int yHigherFrequency = -1;
+            int higherFrequency = 0;
+            for (double lr = r * 0.2; lr < r; lr++) {
+                int x = (int) ((double)center.x + lr * Math.cos(Math.toRadians(i)));
+                int y = (int) ((double)center.y + lr * Math.sin(Math.toRadians(i)));
+                if (bounds.contains(x, y) && binaryMatrix.get(x, y)) {
+                    if (limitImage.get(0, x, y) > higherFrequency) {
+                        higherFrequency = limitImage.get(0, x, y);
+                        xHigherFrequency = x;
+                        yHigherFrequency = y;
+                    }
+                    
+                }
+            }
+            if (xHigherFrequency > 0) {
+                xPoints.add(xHigherFrequency);
+                yPoints.add(yHigherFrequency);
+            }
+        }
 
         
+        binaryMatrix = ImageFactory.buildBinaryImage(binaryMatrix.getWidth(), binaryMatrix.getHeight());
+        Polygon polygon = new Polygon(array(xPoints), array(yPoints), xPoints.size());
+        for (int x = 0; x < binaryMatrix.getWidth(); x++) {
+            for (int y = 0; y < binaryMatrix.getHeight(); y++) {
+                if (polygon.contains(x, y)) {
+                    binaryMatrix.set(x, y, true);
+                }
+            }
+        }
         result.getSlice(sliceIndex).getStructure(StructureType.HEART).setBinaryLabel(binaryMatrix);
+    }
+    
+    /**
+     * Converts a list to an array
+     * 
+     * @param ints
+     * @return int[]
+     */
+    private int[] array(List<Integer> ints) {
+        int[] array = new int[ints.size()];
+        for (int i = 0; i < ints.size(); i++) {
+            array[i] = ints.get(i);
+        }
+        return array;
     }
 
 }

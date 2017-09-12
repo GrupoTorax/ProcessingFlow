@@ -8,10 +8,11 @@ import java.awt.Color;
  */
 public enum StructureType {
 
-    LEFT_LUNG("Left lung", new Color(0xFFFF00)),
-    RIGHT_LUNG("Right lung", new Color(0x00FF00)),
-    HEART("Heart", new Color(0xFF0000)),
-    AORTA("Aorta", new Color(0xFF00FF)),
+    LEFT_LUNG("Left lung", new Color(0x1B4079)),
+    RIGHT_LUNG("Right lung", new Color(0x51A3A3)),
+    HEART("Heart", new Color(0xA63446)),
+//    AORTA("Aorta", new Color(0xEAD94C)),
+    AORTA("Aorta", new Color(0x16DB93)),
     ;
     
     /** Name of the structure */

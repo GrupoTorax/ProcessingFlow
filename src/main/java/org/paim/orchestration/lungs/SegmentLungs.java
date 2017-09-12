@@ -99,7 +99,7 @@ public class SegmentLungs {
             twoLargest = objects.sortBySizeLargestFirst().subList(2);
         }
         // Ordena pela posição horizontal, e separa o pulmão esquerdo do direito
-        twoLargest.sort((o1, o2) -> o1.getBounds().x - o2.getBounds().x);
+        twoLargest.sort((o1, o2) -> o1.getMatrix().getBounds().x - o2.getMatrix().getBounds().x);
         result.getStructure(StructureType.LEFT_LUNG).getSlice(sliceIndex).setBinaryLabel(twoLargest.get(0).getMatrix());
         result.getStructure(StructureType.RIGHT_LUNG).getSlice(sliceIndex).setBinaryLabel(twoLargest.get(1).getMatrix());
     }

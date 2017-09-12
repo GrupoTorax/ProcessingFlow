@@ -72,8 +72,8 @@ public class SegmentAorta {
         // Filters the objects
         objects = objects.stream().filter((object) -> object.getSize() > 1000 && object.getSize() < 2500).collect(Collectors.toList());
         objects = objects.stream().filter((object) -> object.getCircularity() > 0.7).collect(Collectors.toList());
-        objects = objects.stream().filter((object) -> object.getBounds().center().x > w / 4).collect(Collectors.toList());
-        objects = objects.stream().filter((object) -> object.getBounds().center().x < w / 4 + w / 2).collect(Collectors.toList());
+        objects = objects.stream().filter((object) -> object.getMatrix().getBounds().center().x > w / 4).collect(Collectors.toList());
+        objects = objects.stream().filter((object) -> object.getMatrix().getBounds().center().x < w / 4 + w / 2).collect(Collectors.toList());
         // If the aorta is not in the image, no objects will meet the filters
         if (objects.isEmpty()) {
             return;
@@ -81,8 +81,8 @@ public class SegmentAorta {
         // Sort the objects by the distance to the center of the image
         Point imageCenter = new Point(w / 2, h / 2);
         objects.sort((o1, o2) -> {
-            double d1 = o1.getBounds().center().distance(imageCenter);
-            double d2 = o2.getBounds().center().distance(imageCenter);
+            double d1 = o1.getMatrix().getBounds().center().distance(imageCenter);
+            double d2 = o2.getMatrix().getBounds().center().distance(imageCenter);
             return d2 < d1 ? 1 : -1;
         });
         // Fills the structure
