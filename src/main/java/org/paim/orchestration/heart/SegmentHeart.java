@@ -15,6 +15,7 @@ import org.paim.commons.Point;
 import org.paim.orchestration.ExamResult;
 import org.paim.orchestration.StructureType;
 import org.paim.pdi.BinaryLabelingProcess;
+import org.paim.pdi.SnakeProcess;
 import org.paim.pdi.ThresholdLimitProcess;
 
 /**
@@ -59,7 +60,6 @@ public class SegmentHeart {
         BinaryImage aortaLabel = result.getSlice(sliceIndex).getStructure(StructureType.AORTA).getBinaryLabel();
         BinaryImage leftLungLabel = result.getSlice(sliceIndex).getStructure(StructureType.LEFT_LUNG).getBinaryLabel();
         BinaryImage rightLungLabel = result.getSlice(sliceIndex).getStructure(StructureType.RIGHT_LUNG).getBinaryLabel();
-        
         int bottom = 0;
         for (int y = aortaLabel.getHeight() - 1; y >= 0; y--) {
             for (int x = 0; x < aortaLabel.getWidth(); x++) {
@@ -69,7 +69,6 @@ public class SegmentHeart {
                 }
             }
         }
-        
         int top = 0;
         for (int y = leftLungLabel.getHeight() - 1; y >= 0; y--) {
             for (int x = 0; x < leftLungLabel.getWidth(); x++) {
@@ -87,7 +86,6 @@ public class SegmentHeart {
         }
         // Removes the left lung and right lung from the heart area
         binaryMatrix = binaryMatrix.difference(leftLungLabel).difference(rightLungLabel);
-        
         int leftTopX = 0;
         for (int y = leftLungLabel.getHeight() - 1; y >= 0; y--) {
             for (int x = 0; x < leftLungLabel.getWidth(); x++) {
@@ -97,7 +95,6 @@ public class SegmentHeart {
                 }
             }
         }
-        
         for (int x = 0; x < leftTopX; x++) {
             for (int y = 0; y < leftLungLabel.getHeight(); y++) {
                 if (leftLungLabel.get(x, y)) {
@@ -106,7 +103,6 @@ public class SegmentHeart {
                 binaryMatrix.set(x, y, false);
             }
         }
-
         int rightTopX = 0;
         for (int y = rightLungLabel.getHeight() - 1; y >= 0; y--) {
             for (int x = 0; x < rightLungLabel.getWidth(); x++) {
@@ -116,7 +112,6 @@ public class SegmentHeart {
                 }
             }
         }
-
         for (int x = rightTopX; x < image.getWidth(); x++) {
             for (int y = 0; y < rightLungLabel.getHeight(); y++) {
                 if (rightLungLabel.get(x, y)) {
@@ -125,7 +120,6 @@ public class SegmentHeart {
                 binaryMatrix.set(x, y, false);
             }
         }
-        
         BinaryLabelingProcess binaryLabeling = new BinaryLabelingProcess(binaryMatrix);
         binaryLabeling.process();
         BinaryLabelingProcess.ObjectList objects = binaryLabeling.getExtractedObjects().sortBySizeLargestFirst();
@@ -133,12 +127,10 @@ public class SegmentHeart {
             return;
         }
         binaryMatrix = objects.get(0).getMatrix();
-        
         // Apply a threshold painting the range 100-2000 HU in white, all the rest in black
         ThresholdLimitProcess limit = new ThresholdLimitProcess(image, -190, 30, -4000, -4000, 4000);
         limit.process();
         Image limitImage = limit.getOutput();
-        
         binaryLabeling = new BinaryLabelingProcess(limitImage);
         binaryLabeling.process();
         objects = binaryLabeling.getExtractedObjects().sortBySizeLargestFirst();
@@ -147,14 +139,11 @@ public class SegmentHeart {
         }
         BinaryImage thresholdedMatrix = objects.get(0).getMatrix();
         binaryMatrix = thresholdedMatrix.intersection(binaryMatrix);
-
         // Implementação do algoritmo de Figueiredo:
         Bounds bounds = binaryMatrix.getBounds();
         Point center = bounds.center();
-        
         List<Integer> xPoints = new ArrayList<>();
         List<Integer> yPoints = new ArrayList<>();
-//        System.out.println(sliceIndex);
         double r = Math.max(bounds.width, bounds.height) * 0.8;
         for (int i = 0; i < 360; i += 1) {
             int xHigherFrequency = -1;
@@ -177,17 +166,29 @@ public class SegmentHeart {
                 yPoints.add(yHigherFrequency);
             }
         }
-
-        
         binaryMatrix = ImageFactory.buildBinaryImage(binaryMatrix.getWidth(), binaryMatrix.getHeight());
-        Polygon polygon = new Polygon(array(xPoints), array(yPoints), xPoints.size());
-        for (int x = 0; x < binaryMatrix.getWidth(); x++) {
-            for (int y = 0; y < binaryMatrix.getHeight(); y++) {
-                if (polygon.contains(x, y)) {
-                    binaryMatrix.set(x, y, true);
+        for (int i = 0; i < xPoints.size(); i++) {
+            binaryMatrix.set(xPoints.get(i), yPoints.get(i), true);
+        }
+        // Remove pontos sozinhos
+        // TODO: Criar novo processo
+        for (int x = 1; x < binaryMatrix.getWidth() - 1; x++) {
+            for (int y = 1; y < binaryMatrix.getHeight() - 1; y++) {
+                if (!binaryMatrix.get(x-1, y-1) && 
+                        !binaryMatrix.get(x, y-1) && 
+                        !binaryMatrix.get(x, y+1) &&
+                        !binaryMatrix.get(x-1, y) && 
+                        !binaryMatrix.get(x+1, y) && 
+                        !binaryMatrix.get(x-1, y+1) &&
+                        !binaryMatrix.get(x, y+1) &&
+                        !binaryMatrix.get(x+1, y+1)) {
+                    binaryMatrix.set(x, y, false);
                 }
             }
         }
+        SnakeProcess snakeProcess = new SnakeProcess(binaryMatrix, 1000, 1, 1, 1);
+        snakeProcess.process();
+        binaryMatrix = snakeProcess.getOutput();
         result.getSlice(sliceIndex).getStructure(StructureType.HEART).setBinaryLabel(binaryMatrix);
     }
     
