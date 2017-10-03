@@ -1,18 +1,17 @@
 package org.paim.orchestration.heart;
 
-import java.awt.Polygon;
-import java.awt.Rectangle;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import static jdk.nashorn.internal.objects.NativeArray.slice;
 import org.paim.commons.BinaryImage;
 import org.paim.commons.Bounds;
-import org.paim.commons.Exam;
+import org.paim.commons.ExamSlice;
 import org.paim.commons.Image;
 import org.paim.commons.ImageFactory;
 import org.paim.commons.ImageHelper;
 import org.paim.commons.Point;
-import org.paim.orchestration.ExamResult;
+import org.paim.orchestration.ExamResultSlice;
+import org.paim.orchestration.StructureSegmenter;
 import org.paim.orchestration.StructureType;
 import org.paim.pdi.BinaryLabelingProcess;
 import org.paim.pdi.SnakeProcess;
@@ -21,45 +20,16 @@ import org.paim.pdi.ThresholdLimitProcess;
 /**
  * Identifies and segments the heart in the exam
  */
-public class SegmentHeart {
+public class SegmentHeart implements StructureSegmenter {
 
-    /** Exam */
-    private final Exam exam;
-    /** Exam result */
-    private final ExamResult result;
-
-    /**
-     * Creates the flow for the heart segmentation
-     * 
-     * @param exam
-     * @param result 
-     */
-    public SegmentHeart(Exam exam, ExamResult result) {
-        this.exam = exam;
-        this.result = result;
-    }
-
-    /**
-     * Segments the heart
-     */
-    public void process() {
-        for (int slideIndex = 0; slideIndex < exam.getNumberOfSlices(); slideIndex++) {
-            segmentSlice(slideIndex);
-        }
-    }
-
-    /**
-     * Segments a specified slice
-     * 
-     * @param sliceIndex 
-     */
-    private void segmentSlice(int sliceIndex) {
+    @Override
+    public List<BinaryImage> segmentSlice(int sliceIndex, ExamSlice slice, ExamResultSlice resultSlice) {
         // Creates the image
-        Image image = ImageHelper.create(exam.getExamSlice(sliceIndex).getCoefficientMatrix(), new org.paim.commons.Range<>(-4000, 4000));
+        Image image = ImageHelper.create(slice.getCoefficientMatrix(), new org.paim.commons.Range<>(-4000, 4000));
         // Obtains the label of the other structures
-        BinaryImage aortaLabel = result.getSlice(sliceIndex).getStructure(StructureType.AORTA).getBinaryLabel();
-        BinaryImage leftLungLabel = result.getSlice(sliceIndex).getStructure(StructureType.LEFT_LUNG).getBinaryLabel();
-        BinaryImage rightLungLabel = result.getSlice(sliceIndex).getStructure(StructureType.RIGHT_LUNG).getBinaryLabel();
+        BinaryImage aortaLabel = resultSlice.getStructure(StructureType.AORTA).getBinaryLabel();
+        BinaryImage leftLungLabel = resultSlice.getStructure(StructureType.LEFT_LUNG).getBinaryLabel();
+        BinaryImage rightLungLabel = resultSlice.getStructure(StructureType.RIGHT_LUNG).getBinaryLabel();
         int bottom = 0;
         for (int y = aortaLabel.getHeight() - 1; y >= 0; y--) {
             for (int x = 0; x < aortaLabel.getWidth(); x++) {
@@ -124,7 +94,7 @@ public class SegmentHeart {
         binaryLabeling.process();
         BinaryLabelingProcess.ObjectList objects = binaryLabeling.getExtractedObjects().sortBySizeLargestFirst();
         if (objects.isEmpty()) {
-            return;
+            return null;
         }
         binaryMatrix = objects.get(0).getMatrix();
         // Apply a threshold painting the range 100-2000 HU in white, all the rest in black
@@ -135,7 +105,7 @@ public class SegmentHeart {
         binaryLabeling.process();
         objects = binaryLabeling.getExtractedObjects().sortBySizeLargestFirst();
         if (objects.isEmpty()) {
-            return;
+            return null;
         }
         BinaryImage thresholdedMatrix = objects.get(0).getMatrix();
         binaryMatrix = thresholdedMatrix.intersection(binaryMatrix);
@@ -188,22 +158,7 @@ public class SegmentHeart {
         }
         SnakeProcess snakeProcess = new SnakeProcess(binaryMatrix, 1000, 1, 1, 1);
         snakeProcess.process();
-        binaryMatrix = snakeProcess.getOutput();
-        result.getSlice(sliceIndex).getStructure(StructureType.HEART).setBinaryLabel(binaryMatrix);
-    }
-    
-    /**
-     * Converts a list to an array
-     * 
-     * @param ints
-     * @return int[]
-     */
-    private int[] array(List<Integer> ints) {
-        int[] array = new int[ints.size()];
-        for (int i = 0; i < ints.size(); i++) {
-            array[i] = ints.get(i);
-        }
-        return array;
+        return Arrays.asList(snakeProcess.getOutput());
     }
 
 }

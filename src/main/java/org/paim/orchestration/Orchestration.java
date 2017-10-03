@@ -19,12 +19,12 @@ public class Orchestration {
 
     public ExamResult segmenta() {
         ExamResult result = new ExamResult(exam);
+        SliceStructureSegmenter segmenter = new SliceStructureSegmenter(exam, result);
         SegmentLungs lungSegmentation = new SegmentLungs(exam, result);
         lungSegmentation.segmenta();
-        SegmentAorta aortaSegmentation = new SegmentAorta(exam, result);
-        aortaSegmentation.process();
-        SegmentHeart heartSegmentation = new SegmentHeart(exam, result);
-        heartSegmentation.process();
+        segmenter.process(StructureType.AORTA, new SegmentAorta(), new ClosestToCentralityAverageContextSegmenter());
+        segmenter.process(StructureType.HEART, new SegmentHeart(), new BestCandidateContextSegmenter());
         return result;
     }
+    
 }
