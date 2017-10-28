@@ -1,5 +1,6 @@
 package org.paim.orchestration.lungs;
 
+import java.util.stream.IntStream;
 import org.paim.commons.Exam;
 import org.paim.commons.Image;
 import org.paim.commons.ImageHelper;
@@ -39,9 +40,9 @@ public class SegmentLungs {
      * Segments the lungs
      */
     public void segmenta() {
-        for (int indiceFatia = 0; indiceFatia < exam.getNumberOfSlices(); indiceFatia++) {
+        IntStream.range(0, exam.getNumberOfSlices()).parallel().forEach(indiceFatia -> {
             segmentSlice(indiceFatia);
-        }
+        });
     }
 
     /**

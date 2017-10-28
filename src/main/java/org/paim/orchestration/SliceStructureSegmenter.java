@@ -2,6 +2,7 @@ package org.paim.orchestration;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.paim.commons.BinaryImage;
 import org.paim.commons.Exam;
 import org.paim.pdi.BinaryLabelingProcess;
@@ -40,16 +41,16 @@ public class SliceStructureSegmenter {
             candidatesPerSlice.add(segmenter.segmentSlice(sliceIndex, exam.getExamSlice(sliceIndex), result.getSlice(sliceIndex)));
         }
         contextSegmenter.initialize(exam, result, candidatesPerSlice);
-        for (int sliceIndex = 0; sliceIndex < exam.getNumberOfSlices(); sliceIndex++) {
+        IntStream.range(0, exam.getNumberOfSlices()).parallel().forEach(sliceIndex -> {
             List<BinaryImage> candidates = candidatesPerSlice.get(sliceIndex);
             if (candidates == null || candidates.isEmpty()) {
-                continue;
+                return;
             }
             BinaryImage choice = contextSegmenter.chooseCandidate(candidates, sliceIndex);
             if (choice != null) {
                 result.getSlice(sliceIndex).getStructure(type).setBinaryLabel(choice);
             }
-        }
+        });
     }
     
 }
