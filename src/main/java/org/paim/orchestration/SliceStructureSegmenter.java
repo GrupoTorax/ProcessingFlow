@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.stream.IntStream;
 import org.paim.commons.BinaryImage;
 import org.paim.commons.Exam;
-import org.paim.pdi.BinaryLabelingProcess;
 
 /**
  * Segments a structure

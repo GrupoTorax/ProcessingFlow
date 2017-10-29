@@ -14,8 +14,11 @@ import org.paim.orchestration.ExamResultSlice;
 import org.paim.orchestration.StructureSegmenter;
 import org.paim.orchestration.StructureType;
 import org.paim.pdi.BinaryLabelingProcess;
+import org.paim.pdi.DilationProcess;
+import org.paim.pdi.ErosionProcess;
 import org.paim.pdi.SnakeProcess;
 import org.paim.pdi.ThresholdLimitProcess;
+import org.paim.pdi.ZhangSuenProcess;
 
 /**
  * Identifies and segments the heart in the exam
@@ -140,6 +143,22 @@ public class SegmentHeart implements StructureSegmenter {
         for (int i = 0; i < xPoints.size(); i++) {
             binaryMatrix.set(xPoints.get(i), yPoints.get(i), true);
         }
+        // Two erosion processes
+        ErosionProcess erosionProcessFirst = new ErosionProcess(binaryMatrix);
+        erosionProcessFirst.process();
+        ErosionProcess erosionProcessSecond = new ErosionProcess(erosionProcessFirst.getOutput());
+        erosionProcessSecond.process();
+        binaryMatrix = new BinaryImage(erosionProcessSecond.getOutput());
+        // Two dilatation processes
+        DilationProcess dilationProcessFirst = new DilationProcess(binaryMatrix);
+        dilationProcessFirst.process();
+        DilationProcess dilationProcessSecond = new DilationProcess(dilationProcessFirst.getOutput());
+        dilationProcessSecond.process();
+        binaryMatrix = new BinaryImage(dilationProcessSecond.getOutput());
+        // Skeletonize
+        ZhangSuenProcess zhangSuenProcess = new ZhangSuenProcess(binaryMatrix);
+        zhangSuenProcess.process();
+        binaryMatrix = new BinaryImage(zhangSuenProcess.getOutput());
         // Remove pontos sozinhos
         // TODO: Criar novo processo
         for (int x = 1; x < binaryMatrix.getWidth() - 1; x++) {
@@ -156,6 +175,19 @@ public class SegmentHeart implements StructureSegmenter {
                 }
             }
         }
+        // Two erosion processes
+        erosionProcessFirst = new ErosionProcess(binaryMatrix);
+        erosionProcessFirst.process();
+        erosionProcessSecond = new ErosionProcess(erosionProcessFirst.getOutput());
+        erosionProcessSecond.process();
+        binaryMatrix = new BinaryImage(erosionProcessSecond.getOutput());
+        // Two dilatation processes
+        dilationProcessFirst = new DilationProcess(binaryMatrix);
+        dilationProcessFirst.process();
+        dilationProcessSecond = new DilationProcess(dilationProcessFirst.getOutput());
+        dilationProcessSecond.process();
+        binaryMatrix = new BinaryImage(dilationProcessSecond.getOutput());
+        // Snake
         SnakeProcess snakeProcess = new SnakeProcess(binaryMatrix, 1000, 1, 1, 1);
         snakeProcess.process();
         return Arrays.asList(snakeProcess.getOutput());
