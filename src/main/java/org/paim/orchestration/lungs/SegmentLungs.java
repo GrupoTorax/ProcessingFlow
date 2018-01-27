@@ -7,7 +7,8 @@ import org.paim.commons.ImageHelper;
 import org.paim.orchestration.ExamResult;
 import org.paim.orchestration.StructureType;
 import org.paim.pdi.BinaryLabelingProcess;
-import org.paim.pdi.BinaryLabelingProcess.ObjectList;
+import org.paim.pdi.ExtractedObject;
+import org.paim.pdi.ObjectList;
 import org.paim.pdi.GaussianBlurProcess;
 import org.paim.pdi.HistogramProcess;
 import org.paim.pdi.ShadowCastingProcess;
@@ -82,10 +83,10 @@ public class SegmentLungs {
         image = ImageHelper.create(process.getOutput(), new org.paim.commons.Range<>(-4000, 4000));
         BinaryLabelingProcess binaryLabelingProcess = new BinaryLabelingProcess(image);
         binaryLabelingProcess.process();
-        BinaryLabelingProcess.ObjectList objects = binaryLabelingProcess.getExtractedObjects();
+        ObjectList objects = binaryLabelingProcess.getExtractedObjects();
         // Busca os dois maiores objetos da imagem
         ObjectList twoLargest = objects.sortBySizeLargestFirst().subList(2);
-        BinaryLabelingProcess.ExtractedObject maiorO1 = twoLargest.get(0);
+        ExtractedObject maiorO1 = twoLargest.get(0);
         // Verifica se os pulmões estão conectados, sendo reconhecidos como somente 1 objeto
         CheckConnectedLungs checkConnected = new CheckConnectedLungs(maiorO1);
         checkConnected.process();

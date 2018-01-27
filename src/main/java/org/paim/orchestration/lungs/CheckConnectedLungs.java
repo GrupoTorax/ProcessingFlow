@@ -1,7 +1,7 @@
 package org.paim.orchestration.lungs;
 
 import org.paim.commons.BinaryImage;
-import org.paim.pdi.BinaryLabelingProcess;
+import org.paim.pdi.ExtractedObject;
 import org.paim.pdi.Process;
 
 /**
@@ -10,7 +10,7 @@ import org.paim.pdi.Process;
 public class CheckConnectedLungs implements Process {
 
     /** Original image */
-    private final BinaryLabelingProcess.ExtractedObject object;
+    private final ExtractedObject object;
     /** If the lungs are connected */
     private boolean connected;
 
@@ -19,7 +19,7 @@ public class CheckConnectedLungs implements Process {
      * 
      * @param object
      */
-    public CheckConnectedLungs(BinaryLabelingProcess.ExtractedObject object) {
+    public CheckConnectedLungs(ExtractedObject object) {
         this.object = object;
     }
     

@@ -16,6 +16,7 @@ import org.paim.orchestration.StructureType;
 import org.paim.pdi.BinaryLabelingProcess;
 import org.paim.pdi.DilationProcess;
 import org.paim.pdi.ErosionProcess;
+import org.paim.pdi.ObjectList;
 import org.paim.pdi.SnakeProcess;
 import org.paim.pdi.ThresholdLimitProcess;
 import org.paim.pdi.ZhangSuenProcess;
@@ -95,7 +96,7 @@ public class SegmentHeart implements StructureSegmenter {
         }
         BinaryLabelingProcess binaryLabeling = new BinaryLabelingProcess(binaryMatrix);
         binaryLabeling.process();
-        BinaryLabelingProcess.ObjectList objects = binaryLabeling.getExtractedObjects().sortBySizeLargestFirst();
+        ObjectList objects = binaryLabeling.getExtractedObjects().sortBySizeLargestFirst();
         if (objects.isEmpty()) {
             return null;
         }

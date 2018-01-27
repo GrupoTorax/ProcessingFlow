@@ -13,6 +13,7 @@ import org.paim.pdi.GaussianBlurProcess;
 import org.paim.pdi.ThresholdLimitProcess;
 import org.paim.pdi.ThresholdProcess;
 import org.paim.orchestration.StructureSegmenter;
+import org.paim.pdi.ExtractedObject;
 
 /**
  * Identifies and segments the Aorta in the exam
@@ -40,7 +41,7 @@ public class SegmentAorta implements StructureSegmenter {
         BinaryLabelingProcess binaryLabelingProcess = new BinaryLabelingProcess(image);
         binaryLabelingProcess.process();
         // Extracts the object
-        List<BinaryLabelingProcess.ExtractedObject> objects = binaryLabelingProcess.getExtractedObjects();
+        List<ExtractedObject> objects = binaryLabelingProcess.getExtractedObjects();
         // Filters the objects
         objects = objects.stream().filter((object) -> object.getSize() > 1000 && object.getSize() < 2500).collect(Collectors.toList());
         objects = objects.stream().filter((object) -> object.getCircularity() > 0.7).collect(Collectors.toList());
