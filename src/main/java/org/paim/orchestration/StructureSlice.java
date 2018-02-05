@@ -28,7 +28,7 @@ public class StructureSlice {
      * @param exam 
      */
     public StructureSlice(ExamSlice exam) {
-        setBinaryLabel(new BinaryImage(ImageFactory.buildEmptyImage()));
+        setBinaryLabel(ImageFactory.buildBinaryImage(exam.getColumns(), exam.getColumns()));
     }
 
     /**
